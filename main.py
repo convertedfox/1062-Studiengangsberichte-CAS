@@ -24,16 +24,20 @@ def main() -> None:
     import_year = get_latest_import_year()
     study_programs = sorted(row.studiengang for row in data)
     fachbereiche = _group_by_fachbereich(data)
+    fachbereich_by_program = {row.studiengang: row.fachbereich for row in data}
     default_program = study_programs[0]
     selected = st.session_state.get("selected_program", default_program)
+    selected_fachbereich = fachbereich_by_program.get(selected)
     with st.sidebar:
         st.markdown("### Auswahl")
         for fachbereich, programs in fachbereiche.items():
-            with st.expander(fachbereich, expanded=True):
+            is_active = fachbereich == selected_fachbereich
+            with st.expander(fachbereich, expanded=is_active):
                 for program in programs:
                     if st.button(program, use_container_width=True):
                         st.session_state["selected_program"] = program
                         selected = program
+                        selected_fachbereich = fachbereich
         st.caption("Quelle: neueste Datei im Ordner `data/`")
         if import_year:
             st.caption(f"Importjahr: {import_year}")
