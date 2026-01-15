@@ -113,8 +113,8 @@ def _render_year_series(values: dict[str, int | None], import_year: int | None) 
         alt.Chart(chart_data)
         .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
         .encode(
-            x=alt.X("Jahr:N", axis=alt.Axis(labelAngle=0, labelColor="#b3b3b3", title=None)),
-            y=alt.Y("Wert:Q", axis=alt.Axis(labelColor="#b3b3b3", title=None)),
+            x=alt.X("Jahr:N", axis=alt.Axis(labelAngle=0, title=None)),
+            y=alt.Y("Wert:Q", axis=alt.Axis(title=None)),
             tooltip=["Jahr", "Wert"],
         )
         .properties(height=220)
