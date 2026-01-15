@@ -299,6 +299,10 @@ def _inject_styles() -> None:
         section[data-testid="stSidebar"] {
             background-color: #FFFFFF;
         }
+        header,
+        [data-testid="stHeader"] {
+            background-color: #FFFFFF;
+        }
         div[data-testid="stVegaLiteChart"] {
             background: #FFFFFF;
             border: 1px solid var(--dhbw-secondary-50);
