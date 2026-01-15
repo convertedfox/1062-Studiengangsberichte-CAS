@@ -14,6 +14,8 @@ def main() -> None:
         layout="wide",
     )
 
+    _inject_styles()
+
     data = load_latest_import_table()
     if not data:
         st.warning("Keine Studiengaenge im Import gefunden.")
@@ -59,45 +61,58 @@ def main() -> None:
 
 
 def _render_student_metrics(row: StudyProgramRow, import_year: int | None) -> None:
-    st.markdown("### Studierendenzahlen")
+    _section_title("Studierendenzahlen")
     cols = st.columns(2)
 
     with cols[0]:
-        st.markdown("**Studienanfaenger (letzte 4 Jahre)**")
+        st.markdown('<div class="panel-title">Studienanfaenger (letzte 4 Jahre)</div>', unsafe_allow_html=True)
         _render_year_series(row.studienanfaenger, import_year)
 
     with cols[1]:
-        st.markdown("**Immatrikulierte Studierende (letzte 4 Jahre)**")
+        st.markdown(
+            '<div class="panel-title">Immatrikulierte Studierende (letzte 4 Jahre)</div>',
+            unsafe_allow_html=True,
+        )
         _render_year_series(row.immatrikulierte, import_year)
 
-    metrics = st.columns(4)
-    metrics[0].metric("Erfolgsquote", _format_percent(row.erfolgsquote))
-    metrics[1].metric("Fachsemester", _format_number(row.fachsemester))
-    metrics[2].metric("Berufserfahrung", _format_number(row.berufserfahrung))
-    metrics[3].metric("Alter", _format_number(row.alter))
+    _render_kpi_row(
+        [
+            ("Erfolgsquote", _format_percent(row.erfolgsquote)),
+            ("Fachsemester", _format_number(row.fachsemester)),
+            ("Berufserfahrung", _format_number(row.berufserfahrung)),
+            ("Alter", _format_number(row.alter)),
+        ]
+    )
 
-    st.markdown("### Module")
-    module_cols = st.columns(2)
-    module_cols[0].metric("Durchschnittliche Modulauslastung", _format_number(row.modulauslastung))
-    module_cols[1].metric("Anzahl Module", _format_number(row.anzahl_module))
+    _section_title("Module")
+    _render_kpi_row(
+        [
+            ("Durchschnittliche Modulauslastung", _format_number(row.modulauslastung)),
+            ("Anzahl Module", _format_number(row.anzahl_module)),
+        ],
+        columns=2,
+    )
 
 
 def _render_profile_sections(row: StudyProgramRow) -> None:
-    st.markdown("### Profile")
+    _section_title("Profile")
     col_left, col_right = st.columns(2)
 
     with col_left:
-        st.markdown("**Vorstudium der Studienanfaenger**")
+        st.markdown('<div class="panel-title">Vorstudium der Studienanfaenger</div>', unsafe_allow_html=True)
         _render_profile_table(row.vorstudium_profil)
 
-        st.markdown("**Dozentenherkunft (Lehrveranstaltungsstunden)**")
+        st.markdown(
+            '<div class="panel-title">Dozentenherkunft (Lehrveranstaltungsstunden)</div>',
+            unsafe_allow_html=True,
+        )
         _render_profile_table(row.dozenten_herkunft_profil)
 
     with col_right:
-        st.markdown("**Modulbelegung nach Studiengaengen**")
+        st.markdown('<div class="panel-title">Modulbelegung nach Studiengaengen</div>', unsafe_allow_html=True)
         _render_profile_table(row.module_belegung_nach_sg)
 
-        st.markdown("**Herkunft der Modulteilnehmer**")
+        st.markdown('<div class="panel-title">Herkunft der Modulteilnehmer</div>', unsafe_allow_html=True)
         _render_profile_table(row.modulteilnehmer_herkunft)
 
 
@@ -180,6 +195,102 @@ def _group_by_fachbereich(rows: list[StudyProgramRow]) -> dict[str, list[str]]:
         key = row.fachbereich or "Ohne Fachbereich"
         groups.setdefault(key, []).append(row.studiengang)
     return {key: sorted(values) for key, values in sorted(groups.items())}
+
+
+def _section_title(title: str) -> None:
+    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+
+
+def _render_kpi_row(items: list[tuple[str, str]], columns: int = 4) -> None:
+    cols = st.columns(columns)
+    for idx, (label, value) in enumerate(items):
+        with cols[idx % columns]:
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">{label}</div>
+                    <div class="kpi-value">{value}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def _inject_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        :root {
+            --dhbw-primary: #3D4548;
+            --dhbw-secondary: #5C6971;
+            --dhbw-accent: #E2001A;
+            --dhbw-secondary-75: rgba(92, 105, 113, 0.75);
+            --dhbw-secondary-50: rgba(92, 105, 113, 0.5);
+            --dhbw-secondary-25: rgba(92, 105, 113, 0.25);
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--dhbw-accent);
+            margin: 20px 0 12px 0;
+        }
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 6px;
+        }
+        .kpi-card {
+            background: var(--dhbw-secondary-25);
+            border: 1px solid var(--dhbw-secondary-50);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .kpi-label {
+            color: #FFFFFF;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .kpi-value {
+            color: #FFFFFF;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .stApp,
+        .stMarkdown,
+        .stText,
+        .stCaption,
+        .stSubheader,
+        .stHeader,
+        .stTitle,
+        label,
+        p,
+        span {
+            color: #FFFFFF;
+        }
+        div[data-testid="stVegaLiteChart"] {
+            background: var(--dhbw-secondary-25);
+            border: 1px solid var(--dhbw-secondary-50);
+            border-radius: 8px;
+            padding: 8px;
+        }
+        div[data-testid="stDataFrame"] {
+            background: var(--dhbw-secondary-25);
+            border: 1px solid var(--dhbw-secondary-50);
+            border-radius: 8px;
+            padding: 4px;
+        }
+        a {
+            color: var(--dhbw-accent);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _format_number(value: float | int | None) -> str:
