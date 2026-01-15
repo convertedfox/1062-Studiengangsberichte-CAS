@@ -21,10 +21,29 @@ def main() -> None:
 
     import_year = get_latest_import_year()
     fachbereiche = _group_by_fachbereich(data)
+    fachbereich_by_program = {row.studiengang: row.fachbereich for row in data}
+    if "selected_program" not in st.session_state:
+        first_fachbereich = next(iter(fachbereiche))
+        st.session_state["selected_program"] = fachbereiche[first_fachbereich][0]
+    selected = st.session_state["selected_program"]
+    selected_fachbereich = fachbereich_by_program.get(selected)
+
     with st.sidebar:
         st.markdown("### Auswahl")
-        selected_fachbereich = st.radio("Fachbereich", list(fachbereiche.keys()))
-        selected = st.radio("Studiengang", fachbereiche[selected_fachbereich])
+        for fachbereich, programs in fachbereiche.items():
+            is_active = fachbereich == selected_fachbereich
+            with st.expander(fachbereich, expanded=is_active):
+                current = selected if selected in programs else programs[0]
+                st.radio(
+                    "Studiengang",
+                    programs,
+                    key=f"program-{fachbereich}",
+                    index=programs.index(current),
+                    label_visibility="collapsed",
+                    on_change=_select_program,
+                    args=(fachbereich,),
+                )
+        st.markdown("### Info")
         st.caption("Quelle: neueste Datei im Ordner `data/`")
         if import_year:
             st.caption(f"Importjahr: {import_year}")
@@ -149,6 +168,10 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
         (chart + labels).configure_view(strokeOpacity=0),
         use_container_width=True,
     )
+
+
+def _select_program(fachbereich: str) -> None:
+    st.session_state["selected_program"] = st.session_state[f"program-{fachbereich}"]
 
 
 def _group_by_fachbereich(rows: list[StudyProgramRow]) -> dict[str, list[str]]:
