@@ -34,7 +34,10 @@ def main() -> None:
             is_active = fachbereich == selected_fachbereich
             with st.expander(fachbereich, expanded=is_active):
                 for program in programs:
-                    if st.button(program, use_container_width=True):
+                    button_label = program
+                    if program == selected:
+                        button_label = f"▶ {program}"
+                    if st.button(button_label, use_container_width=True):
                         st.session_state["selected_program"] = program
                         selected = program
                         selected_fachbereich = fachbereich
