@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 from zipfile import ZipFile
 import xml.etree.ElementTree as ET
+import re
 
 DATA_DIR = Path("data")
 
@@ -46,6 +47,18 @@ def load_latest_import_table(data_dir: Path = DATA_DIR) -> list[StudyProgramRow]
     import_path = _find_latest_import(data_dir)
     raw_rows = _read_sheet_rows(import_path, sheet_name="Importtabelle")
     return _parse_import_rows(raw_rows)
+
+
+def get_latest_import_path(data_dir: Path = DATA_DIR) -> Path:
+    return _find_latest_import(data_dir)
+
+
+def get_latest_import_year(data_dir: Path = DATA_DIR) -> int | None:
+    import_path = _find_latest_import(data_dir)
+    match = re.search(r"Import\\s+(\\d{4})\\.xlsx", import_path.name)
+    if not match:
+        return None
+    return int(match.group(1))
 
 
 def _find_latest_import(data_dir: Path) -> Path:

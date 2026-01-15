@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
-from import_parser import StudyProgramRow, load_latest_import_table
+from import_parser import StudyProgramRow, get_latest_import_year, load_latest_import_table
 
 
 def main() -> None:
@@ -12,72 +13,109 @@ def main() -> None:
         layout="wide",
     )
 
-    st.title("Qualitaetsberichte Dashboard")
+    _inject_styles()
 
     data = load_latest_import_table()
     if not data:
         st.warning("Keine Studiengaenge im Import gefunden.")
         return
 
+    import_year = get_latest_import_year()
     study_programs = sorted(row.studiengang for row in data)
-    selected = st.sidebar.selectbox("Studiengang", study_programs)
+    with st.sidebar:
+        st.markdown("### Auswahl")
+        selected = st.radio("Studiengang", study_programs, label_visibility="collapsed")
+        st.caption("Quelle: neueste Datei im Ordner `data/`")
+        if import_year:
+            st.caption(f"Importjahr: {import_year}")
+
     row = next(item for item in data if item.studiengang == selected)
 
-    st.subheader(row.studiengang)
-    st.caption(f"Fachbereich: {row.fachbereich}")
+    st.markdown(
+        f"""
+        <div class="hero">
+            <div class="hero-title">Qualitaetsberichte Dashboard</div>
+            <div class="hero-subtitle">Studiengang im Fokus</div>
+            <div class="hero-chip">Studiengang: <strong>{row.studiengang}</strong></div>
+            <div class="hero-chip muted">Fachbereich: {row.fachbereich}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    _render_student_metrics(row)
+    _render_student_metrics(row, import_year)
     _render_profile_sections(row)
 
 
-def _render_student_metrics(row: StudyProgramRow) -> None:
-    st.markdown("### Studierendenzahlen")
+def _render_student_metrics(row: StudyProgramRow, import_year: int | None) -> None:
+    st.markdown('<div class="section-title">Studierendenzahlen</div>', unsafe_allow_html=True)
     cols = st.columns(2)
 
     with cols[0]:
-        st.markdown("**Studienanfaenger (letzte 4 Jahre)**")
-        _render_year_series(row.studienanfaenger)
+        st.markdown('<div class="panel-title">Studienanfaenger (letzte 4 Jahre)</div>', unsafe_allow_html=True)
+        _render_year_series(row.studienanfaenger, import_year)
 
     with cols[1]:
-        st.markdown("**Immatrikulierte Studierende (letzte 4 Jahre)**")
-        _render_year_series(row.immatrikulierte)
+        st.markdown(
+            '<div class="panel-title">Immatrikulierte Studierende (letzte 4 Jahre)</div>',
+            unsafe_allow_html=True,
+        )
+        _render_year_series(row.immatrikulierte, import_year)
 
-    metrics = st.columns(4)
-    metrics[0].metric("Erfolgsquote", _format_percent(row.erfolgsquote))
-    metrics[1].metric("Fachsemester", _format_number(row.fachsemester))
-    metrics[2].metric("Berufserfahrung", _format_number(row.berufserfahrung))
-    metrics[3].metric("Alter", _format_number(row.alter))
+    _render_kpi_row(
+        [
+            ("Erfolgsquote", _format_percent(row.erfolgsquote)),
+            ("Fachsemester", _format_number(row.fachsemester)),
+            ("Berufserfahrung", _format_number(row.berufserfahrung)),
+            ("Alter", _format_number(row.alter)),
+        ]
+    )
 
-    st.markdown("### Module")
-    module_cols = st.columns(2)
-    module_cols[0].metric("Durchschnittliche Modulauslastung", _format_number(row.modulauslastung))
-    module_cols[1].metric("Anzahl Module", _format_number(row.anzahl_module))
+    st.markdown('<div class="section-title">Module</div>', unsafe_allow_html=True)
+    _render_kpi_row(
+        [
+            ("Durchschnittliche Modulauslastung", _format_number(row.modulauslastung)),
+            ("Anzahl Module", _format_number(row.anzahl_module)),
+        ],
+        columns=2,
+    )
 
 
 def _render_profile_sections(row: StudyProgramRow) -> None:
-    st.markdown("### Profile")
+    st.markdown('<div class="section-title">Profile</div>', unsafe_allow_html=True)
     col_left, col_right = st.columns(2)
 
     with col_left:
-        st.markdown("**Vorstudium der Studienanfaenger**")
+        st.markdown('<div class="panel-title">Vorstudium der Studienanfaenger</div>', unsafe_allow_html=True)
         _render_profile_table(row.vorstudium_profil)
 
-        st.markdown("**Dozentenherkunft (Lehrveranstaltungsstunden)**")
+        st.markdown(
+            '<div class="panel-title">Dozentenherkunft (Lehrveranstaltungsstunden)</div>',
+            unsafe_allow_html=True,
+        )
         _render_profile_table(row.dozenten_herkunft_profil)
 
     with col_right:
-        st.markdown("**Modulbelegung nach Studiengaengen**")
+        st.markdown(
+            '<div class="panel-title">Modulbelegung nach Studiengaengen</div>',
+            unsafe_allow_html=True,
+        )
         _render_profile_table(row.module_belegung_nach_sg)
 
-        st.markdown("**Herkunft der Modulteilnehmer**")
+        st.markdown('<div class="panel-title">Herkunft der Modulteilnehmer</div>', unsafe_allow_html=True)
         _render_profile_table(row.modulteilnehmer_herkunft)
 
 
-def _render_year_series(values: dict[str, int | None]) -> None:
-    labels = ["-4", "-3", "-2", "-1"]
-    series = [values.get(label) for label in labels]
-    st.bar_chart(series)
-    st.caption(" / ".join(f"{label}: {_format_number(values.get(label))}" for label in labels))
+def _render_year_series(values: dict[str, int | None], import_year: int | None) -> None:
+    offsets = ["-4", "-3", "-2", "-1"]
+    if import_year:
+        labels = [str(import_year + int(offset)) for offset in offsets]
+    else:
+        labels = offsets
+    series = [values.get(offset) for offset in offsets]
+    chart_data = pd.Series(series, index=labels, dtype="float")
+    st.bar_chart(chart_data)
+    st.caption(" / ".join(f"{label}: {_format_number(value)}" for label, value in zip(labels, series)))
 
 
 def _render_profile_table(profile: dict[str, float | None]) -> None:
@@ -86,6 +124,140 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
         return
     rows = [{"Kategorie": key, "Wert": _format_number(value)} for key, value in profile.items()]
     st.dataframe(rows, hide_index=True, use_container_width=True)
+
+
+def _render_kpi_row(items: list[tuple[str, str]], columns: int = 4) -> None:
+    cols = st.columns(columns)
+    for idx, (label, value) in enumerate(items):
+        with cols[idx % columns]:
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">{label}</div>
+                    <div class="kpi-value">{value}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def _inject_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        :root {
+            --bg: #0f1110;
+            --ink: #f5f5f5;
+            --muted: #b3b3b3;
+            --accent: #1db954;
+            --accent-2: #9fe9b6;
+            --card: #181a1b;
+            --card-strong: #222524;
+            --shadow: rgba(0, 0, 0, 0.35);
+        }
+        html, body, [class*="css"]  {
+            font-family: "Space Grotesk", sans-serif;
+        }
+        .stApp {
+            background: radial-gradient(circle at top left, #1a1d1c 0%, #0f1110 45%, #0a0b0b 100%);
+        }
+        .hero {
+            padding: 28px 28px 22px 28px;
+            border-radius: 18px;
+            background: linear-gradient(120deg, #1b1e1d 0%, #121413 100%);
+            box-shadow: 0 18px 45px var(--shadow);
+            margin-bottom: 24px;
+            animation: riseIn 0.6s ease-out;
+        }
+        .hero-title {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .hero-subtitle {
+            color: var(--muted);
+            margin-top: 6px;
+            font-size: 15px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .hero-chip {
+            display: inline-block;
+            margin-top: 14px;
+            margin-right: 10px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(29, 185, 84, 0.18);
+            color: var(--ink);
+            font-weight: 600;
+        }
+        .hero-chip.muted {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--muted);
+            font-weight: 500;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--accent-2);
+            margin: 22px 0 12px 0;
+        }
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+        .kpi-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px 18px;
+            box-shadow: 0 10px 24px var(--shadow);
+            min-height: 86px;
+            animation: fadeIn 0.6s ease-out;
+        }
+        .kpi-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--ink);
+            margin-top: 6px;
+        }
+        section[data-testid="stSidebar"] {
+            background: #141716;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+            color: var(--muted);
+        }
+        div[data-testid="stText"] {
+            color: var(--muted);
+        }
+        div[data-testid="stMetric"] {
+            background: var(--card-strong);
+            border-radius: 14px;
+            padding: 10px 12px;
+        }
+        @keyframes riseIn {
+            from { transform: translateY(8px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+            from { transform: translateY(6px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _format_number(value: float | int | None) -> str:
