@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -113,8 +114,19 @@ def _render_year_series(values: dict[str, int | None], import_year: int | None) 
     else:
         labels = offsets
     series = [values.get(offset) for offset in offsets]
-    chart_data = pd.Series(series, index=labels, dtype="float")
-    st.bar_chart(chart_data)
+    chart_data = pd.DataFrame({"Jahr": labels, "Wert": series})
+    chart = (
+        alt.Chart(chart_data)
+        .mark_bar(color="#1DB954", cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X("Jahr:N", axis=alt.Axis(labelAngle=0, labelColor="#b3b3b3", title=None)),
+            y=alt.Y("Wert:Q", axis=alt.Axis(labelColor="#b3b3b3", title=None)),
+            tooltip=["Jahr", "Wert"],
+        )
+        .properties(height=220)
+        .configure_view(strokeOpacity=0)
+    )
+    st.altair_chart(chart, use_container_width=True)
     st.caption(" / ".join(f"{label}: {_format_number(value)}" for label, value in zip(labels, series)))
 
 
