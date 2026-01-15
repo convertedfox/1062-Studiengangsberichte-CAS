@@ -9,7 +9,7 @@ from import_parser import StudyProgramRow, get_latest_import_year, load_latest_i
 
 def main() -> None:
     st.set_page_config(
-        page_title="Qualitaetsberichte Dashboard",
+        page_title="Qualitätsberichte Dashboard",
         page_icon="📊",
         layout="wide",
     )
@@ -18,7 +18,7 @@ def main() -> None:
 
     data = load_latest_import_table()
     if not data:
-        st.warning("Keine Studiengaenge im Import gefunden.")
+        st.warning("Keine Studiengänge im Import gefunden.")
         return
 
     import_year = get_latest_import_year()
@@ -65,7 +65,7 @@ def _render_student_metrics(row: StudyProgramRow, import_year: int | None) -> No
     cols = st.columns(2)
 
     with cols[0]:
-        st.markdown('<div class="panel-title">Studienanfaenger (letzte 4 Jahre)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Studienanfänger (letzte 4 Jahre)</div>', unsafe_allow_html=True)
         _render_year_series(row.studienanfaenger, import_year)
 
     with cols[1]:
@@ -99,7 +99,7 @@ def _render_profile_sections(row: StudyProgramRow) -> None:
     col_left, col_right = st.columns(2)
 
     with col_left:
-        st.markdown('<div class="panel-title">Vorstudium der Studienanfaenger</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Vorstudium der Studienanfänger</div>', unsafe_allow_html=True)
         _render_profile_table(row.vorstudium_profil)
 
         st.markdown(
