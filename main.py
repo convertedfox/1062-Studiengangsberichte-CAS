@@ -26,7 +26,9 @@ def main() -> None:
     fachbereiche = _group_by_fachbereich(data)
     fachbereich_by_program = {row.studiengang: row.fachbereich for row in data}
     default_program = study_programs[0]
-    selected = st.session_state.get("selected_program", default_program)
+    if "selected_program" not in st.session_state:
+        st.session_state["selected_program"] = default_program
+    selected = st.session_state["selected_program"]
     selected_fachbereich = fachbereich_by_program.get(selected)
     with st.sidebar:
         st.markdown("### Auswahl")
@@ -34,13 +36,16 @@ def main() -> None:
             is_active = fachbereich == selected_fachbereich
             with st.expander(fachbereich, expanded=is_active):
                 for program in programs:
-                    button_label = program
                     if program == selected:
-                        button_label = f"▶ {program}"
-                    if st.button(button_label, use_container_width=True):
-                        st.session_state["selected_program"] = program
-                        selected = program
-                        selected_fachbereich = fachbereich
+                        st.markdown(f'<div class="active-item">{program}</div>', unsafe_allow_html=True)
+                    else:
+                        st.button(
+                            program,
+                            use_container_width=True,
+                            key=f"program-{program}",
+                            on_click=_select_program,
+                            args=(program,),
+                        )
         st.caption("Quelle: neueste Datei im Ordner `data/`")
         if import_year:
             st.caption(f"Importjahr: {import_year}")
@@ -206,6 +211,10 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
     )
 
 
+def _select_program(program: str) -> None:
+    st.session_state["selected_program"] = program
+
+
 def _group_by_fachbereich(rows: list[StudyProgramRow]) -> dict[str, list[str]]:
     groups: dict[str, list[str]] = {}
     for row in rows:
@@ -298,6 +307,15 @@ def _inject_styles() -> None:
             text-transform: uppercase;
             letter-spacing: 0.04em;
             margin-bottom: 6px;
+        }
+        .active-item {
+            background: rgba(29, 185, 84, 0.18);
+            border: 1px solid rgba(29, 185, 84, 0.45);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-weight: 600;
         }
         .kpi-card {
             background: var(--card);
