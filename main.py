@@ -23,9 +23,17 @@ def main() -> None:
 
     import_year = get_latest_import_year()
     study_programs = sorted(row.studiengang for row in data)
+    fachbereiche = _group_by_fachbereich(data)
+    default_program = study_programs[0]
+    selected = st.session_state.get("selected_program", default_program)
     with st.sidebar:
         st.markdown("### Auswahl")
-        selected = st.radio("Studiengang", study_programs, label_visibility="collapsed")
+        for fachbereich, programs in fachbereiche.items():
+            with st.expander(fachbereich, expanded=True):
+                for program in programs:
+                    if st.button(program, use_container_width=True):
+                        st.session_state["selected_program"] = program
+                        selected = program
         st.caption("Quelle: neueste Datei im Ordner `data/`")
         if import_year:
             st.caption(f"Importjahr: {import_year}")
@@ -189,6 +197,14 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
         (chart + labels).configure_view(strokeOpacity=0),
         use_container_width=True,
     )
+
+
+def _group_by_fachbereich(rows: list[StudyProgramRow]) -> dict[str, list[str]]:
+    groups: dict[str, list[str]] = {}
+    for row in rows:
+        key = row.fachbereich or "Ohne Fachbereich"
+        groups.setdefault(key, []).append(row.studiengang)
+    return {key: sorted(values) for key, values in sorted(groups.items())}
 
 
 def _render_kpi_row(items: list[tuple[str, str]], columns: int = 4) -> None:
