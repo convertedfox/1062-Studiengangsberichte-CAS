@@ -55,7 +55,7 @@ def get_latest_import_path(data_dir: Path = DATA_DIR) -> Path:
 
 def get_latest_import_year(data_dir: Path = DATA_DIR) -> int | None:
     import_path = _find_latest_import(data_dir)
-    match = re.search(r"Import\\s+(\\d{4})\\.xlsx", import_path.name)
+    match = re.search(r"Import\s+(\d{4})\.xlsx", import_path.name)
     if not match:
         return None
     return int(match.group(1))
