@@ -159,9 +159,10 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
         .transform_joinaggregate(total="sum(Wert)")
         .transform_calculate(pct="datum.Wert / datum.total")
     )
+    filtered = base.transform_filter(alt.datum.Wert > 0)
 
     chart = (
-        base.mark_arc(innerRadius=40, outerRadius=90)
+        filtered.mark_arc(innerRadius=40, outerRadius=90)
         .encode(
             theta=alt.Theta("Wert:Q"),
             color=alt.Color(
@@ -178,7 +179,7 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
     )
 
     labels = (
-        base.transform_filter("datum.pct > 0")
+        filtered.transform_filter("datum.pct > 0")
         .mark_text(radius=110, size=12, color="#FFFFFF")
         .encode(text=alt.Text("pct:Q", format=".0%"), theta=alt.Theta("Wert:Q"))
     )
