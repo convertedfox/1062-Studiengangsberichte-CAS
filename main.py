@@ -147,22 +147,26 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
     rows = [
         {"Kategorie": key, "Wert": value}
         for key, value in profile.items()
-        if value is not None and value > 0
+        if value is not None
     ]
     if not rows:
         st.caption("Keine Daten vorhanden.")
         return
 
     data = pd.DataFrame(rows)
+    data["Wert"] = pd.to_numeric(data["Wert"], errors="coerce")
+    data = data[data["Wert"].fillna(0) > 0]
+    if data.empty:
+        st.caption("Keine Daten vorhanden.")
+        return
     base = (
         alt.Chart(data)
         .transform_joinaggregate(total="sum(Wert)")
         .transform_calculate(pct="datum.Wert / datum.total")
     )
-    filtered = base.transform_filter(alt.datum.Wert > 0)
 
     chart = (
-        filtered.mark_arc(innerRadius=40, outerRadius=90)
+        base.mark_arc(innerRadius=40, outerRadius=90)
         .encode(
             theta=alt.Theta("Wert:Q"),
             color=alt.Color(
@@ -179,7 +183,7 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
     )
 
     labels = (
-        filtered.transform_filter("datum.pct > 0")
+        base.transform_filter("datum.pct > 0")
         .mark_text(radius=110, size=12, color="#FFFFFF")
         .encode(text=alt.Text("pct:Q", format=".0%"), theta=alt.Theta("Wert:Q"))
     )
