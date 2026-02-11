@@ -26,6 +26,8 @@ COL_MODULAUSLASTUNG = "S"
 
 @dataclass(frozen=True)
 class StudyProgramRow:
+    """Hält alle eingelesenen Kennzahlen zu einem Studiengang."""
+
     studiengang: str
     fachbereich: str
     studienanfaenger: dict[str, Optional[int]]
@@ -42,16 +44,22 @@ class StudyProgramRow:
 
 
 def load_latest_import_table(data_dir: Path = DATA_DIR) -> list[StudyProgramRow]:
+    """Liest die neueste Importdatei und gibt die geparsten Studiengangszeilen zurück."""
+
     import_path = _find_latest_import(data_dir)
     raw_rows = _read_sheet_rows(import_path, sheet_name="Importtabelle")
     return _parse_import_rows(raw_rows)
 
 
 def get_latest_import_path(data_dir: Path = DATA_DIR) -> Path:
+    """Ermittelt den Pfad der neuesten passenden Importdatei."""
+
     return _find_latest_import(data_dir)
 
 
 def get_latest_import_year(data_dir: Path = DATA_DIR) -> int | None:
+    """Liest das vierstellige Importjahr aus dem Dateinamen der neuesten Datei."""
+
     import_path = _find_latest_import(data_dir)
     match = re.search(r"Import\s+(\d{4})\.xlsx", import_path.name)
     if not match:
@@ -60,6 +68,8 @@ def get_latest_import_year(data_dir: Path = DATA_DIR) -> int | None:
 
 
 def _find_latest_import(data_dir: Path) -> Path:
+    """Sucht im Datenordner nach `Import *.xlsx` und liefert die neueste Datei."""
+
     candidates = sorted(data_dir.glob("Import *.xlsx"))
     if not candidates:
         raise FileNotFoundError(f"No Import *.xlsx files found in {data_dir}")
@@ -67,6 +77,8 @@ def _find_latest_import(data_dir: Path) -> Path:
 
 
 def _read_sheet_rows(import_path: Path, sheet_name: str) -> list[dict[str, str]]:
+    """Liest alle Zeilen eines Excel-Sheets als Mapping von Spaltenbuchstabe zu Zellwert."""
+
     with ZipFile(import_path) as zf:
         sheet_path = _resolve_sheet_path(zf, sheet_name)
         shared_strings = _read_shared_strings(zf)
@@ -89,6 +101,8 @@ def _read_sheet_rows(import_path: Path, sheet_name: str) -> list[dict[str, str]]
 
 
 def _resolve_sheet_path(zf: ZipFile, sheet_name: str) -> str:
+    """Bestimmt den internen XML-Pfad eines Sheets innerhalb der XLSX-Datei."""
+
     wb_xml = ET.fromstring(zf.read("xl/workbook.xml"))
     ns = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
     sheet_id = None
@@ -113,6 +127,8 @@ def _resolve_sheet_path(zf: ZipFile, sheet_name: str) -> str:
 
 
 def _read_shared_strings(zf: ZipFile) -> dict[int, str]:
+    """Lädt die Shared-Strings-Tabelle und mappt Index auf Textinhalt."""
+
     if "xl/sharedStrings.xml" not in zf.namelist():
         return {}
     sst_xml = ET.fromstring(zf.read("xl/sharedStrings.xml"))
@@ -129,6 +145,8 @@ def _read_shared_strings(zf: ZipFile) -> dict[int, str]:
 
 
 def _parse_import_rows(rows: list[dict[str, str]]) -> list[StudyProgramRow]:
+    """Konvertiert rohe Sheet-Zeilen in validierte `StudyProgramRow`-Objekte."""
+
     parsed: list[StudyProgramRow] = []
     for row in rows[1:]:
         studiengang = _normalize_text(row.get(COL_STUDIENGANG, ""))
@@ -162,6 +180,8 @@ def _parse_import_rows(rows: list[dict[str, str]]) -> list[StudyProgramRow]:
 
 
 def _parse_profile(value: str) -> dict[str, Optional[float]]:
+    """Parst Profilwerte im Format `Kategorie:Wert;...` in ein Dictionary."""
+
     raw = _normalize_text(value)
     if not raw:
         return {}
@@ -182,6 +202,8 @@ def _parse_profile(value: str) -> dict[str, Optional[float]]:
 
 
 def _parse_optional_int(value: str) -> Optional[int]:
+    """Parst einen optionalen Ganzzahlwert und gibt bei Leerwert `None` zurück."""
+
     raw = _normalize_text(value)
     if raw == "":
         return None
@@ -192,6 +214,8 @@ def _parse_optional_int(value: str) -> Optional[int]:
 
 
 def _parse_optional_float(value: str) -> Optional[float]:
+    """Parst einen optionalen Fließkommawert und gibt bei Leerwert `None` zurück."""
+
     raw = _normalize_text(value)
     if raw == "":
         return None
@@ -199,9 +223,13 @@ def _parse_optional_float(value: str) -> Optional[float]:
 
 
 def _parse_float(value: str) -> float:
+    """Parst einen numerischen String und akzeptiert Komma oder Punkt als Trennzeichen."""
+
     normalized = value.replace(",", ".")
     return float(normalized)
 
 
 def _normalize_text(value: str) -> str:
+    """Konvertiert beliebige Eingaben in getrimmten Text."""
+
     return str(value).strip()

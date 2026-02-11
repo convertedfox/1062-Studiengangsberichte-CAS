@@ -8,6 +8,8 @@ from import_parser import StudyProgramRow, get_latest_import_year, load_latest_i
 
 
 def main() -> None:
+    """Initialisiert das Dashboard, lädt Daten und rendert die passende Ansicht."""
+
     st.set_page_config(
         page_title="Studiengangskennzahlen Dashboard",
         page_icon="📊",
@@ -81,6 +83,8 @@ def main() -> None:
 
 
 def _render_student_metrics(row: StudyProgramRow, import_year: int | None) -> None:
+    """Zeigt Zeitreihen und KPI-Karten zu Studierendenzahlen und Modulen eines Studiengangs."""
+
     _section_title("Studierendenzahlen")
     cols = st.columns(2)
 
@@ -114,6 +118,8 @@ def _render_student_metrics(row: StudyProgramRow, import_year: int | None) -> No
 
 
 def _render_profile_sections(row: StudyProgramRow) -> None:
+    """Zeigt die Profilverteilungen des gewählten Studiengangs in zwei Spalten."""
+
     _section_title("Profile")
     col_left, col_right = st.columns(2)
 
@@ -136,6 +142,8 @@ def _render_profile_sections(row: StudyProgramRow) -> None:
 
 
 def _render_fachbereich_overview(rows: list[StudyProgramRow], import_year: int | None, fachbereich: str) -> None:
+    """Rendert aggregierte Kennzahlen und Profile für einen gesamten Fachbereich."""
+
     st.title("Fachbereichsübersicht DHBW CAS")
     st.subheader(fachbereich)
 
@@ -166,6 +174,8 @@ def _render_fachbereich_overview(rows: list[StudyProgramRow], import_year: int |
 
 
 def _render_year_series(values: dict[str, int | None], import_year: int | None) -> None:
+    """Visualisiert eine 4-Jahresreihe als Balkendiagramm plus Textzusammenfassung."""
+
     offsets = ["-4", "-3", "-2", "-1"]
     if import_year:
         labels = [str(import_year + int(offset)) for offset in offsets]
@@ -190,6 +200,8 @@ def _render_year_series(values: dict[str, int | None], import_year: int | None) 
 
 
 def _render_profile_table(profile: dict[str, float | None]) -> None:
+    """Stellt Profilanteile als Donut-Chart dar, sofern verwertbare Werte vorhanden sind."""
+
     if not profile:
         st.caption("Keine Daten vorhanden.")
         return
@@ -246,16 +258,22 @@ def _render_profile_table(profile: dict[str, float | None]) -> None:
 
 
 def _select_program(program: str) -> None:
+    """Setzt den aktuell ausgewählten Studiengang in der Session."""
+
     st.session_state["selected_kind"] = "program"
     st.session_state["selected_value"] = program
 
 
 def _select_fachbereich(fachbereich: str) -> None:
+    """Setzt die aktuell ausgewählte Fachbereichsübersicht in der Session."""
+
     st.session_state["selected_kind"] = "fachbereich"
     st.session_state["selected_value"] = fachbereich
 
 
 def _group_by_fachbereich(rows: list[StudyProgramRow]) -> dict[str, list[str]]:
+    """Gruppiert Studiengänge nach Fachbereich und sortiert Gruppen sowie Einträge."""
+
     groups: dict[str, list[str]] = {}
     for row in rows:
         key = row.fachbereich or "Ohne Fachbereich"
@@ -264,6 +282,8 @@ def _group_by_fachbereich(rows: list[StudyProgramRow]) -> dict[str, list[str]]:
 
 
 def _sum_year_series(rows: list[StudyProgramRow], attr: str) -> dict[str, int | None]:
+    """Summiert eine Jahresreihe über mehrere Studiengänge und berücksichtigt fehlende Werte."""
+
     totals: dict[str, int] = {"-4": 0, "-3": 0, "-2": 0, "-1": 0}
     seen: dict[str, bool] = {"-4": False, "-3": False, "-2": False, "-1": False}
     for row in rows:
@@ -278,6 +298,8 @@ def _sum_year_series(rows: list[StudyProgramRow], attr: str) -> dict[str, int | 
 
 
 def _aggregate_profiles(rows: list[StudyProgramRow], attr: str) -> dict[str, float | None]:
+    """Addiert gleichnamige Profilwerte über mehrere Studiengänge."""
+
     totals: dict[str, float] = {}
     for row in rows:
         profile = getattr(row, attr)
@@ -289,6 +311,8 @@ def _aggregate_profiles(rows: list[StudyProgramRow], attr: str) -> dict[str, flo
 
 
 def _fachbereich_header(fachbereich: str) -> str:
+    """Erzeugt den farbigen HTML-Header für einen Fachbereich in der Sidebar."""
+
     colors = {
         "Technik": "#4192AB",
         "Wirtschaft": "#003966",
@@ -303,10 +327,14 @@ def _fachbereich_header(fachbereich: str) -> str:
 
 
 def _section_title(title: str) -> None:
+    """Rendert einen einheitlich gestylten Abschnittstitel."""
+
     st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
 
 
 def _render_kpi_row(items: list[tuple[str, str]], columns: int = 4) -> None:
+    """Rendert KPI-Karten in einer konfigurierbaren Anzahl von Spalten."""
+
     cols = st.columns(columns)
     for idx, (label, value) in enumerate(items):
         with cols[idx % columns]:
@@ -322,6 +350,8 @@ def _render_kpi_row(items: list[tuple[str, str]], columns: int = 4) -> None:
 
 
 def _inject_styles() -> None:
+    """Injiziert das globale CSS-Theme für Layout und Farben des Dashboards."""
+
     st.markdown(
         """
         <style>
@@ -422,12 +452,16 @@ def _inject_styles() -> None:
 
 
 def _format_number(value: float | int | None) -> str:
+    """Formatiert Zahlen kompakt oder gibt bei fehlendem Wert `n/a` zurück."""
+
     if value is None:
         return "n/a"
     return f"{value:.2f}".rstrip("0").rstrip(".")
 
 
 def _format_percent(value: float | None) -> str:
+    """Formatiert einen Dezimalwert als Prozentanzeige oder `n/a`."""
+
     if value is None:
         return "n/a"
     return f"{value * 100:.1f}%"
