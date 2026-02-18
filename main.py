@@ -447,12 +447,17 @@ def _inject_styles() -> None:
             border: 1px solid var(--dhbw-secondary-50);
             border-radius: 8px;
             padding: 10px 12px;
+            min-height: 118px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         .kpi-label {
             color: #000000;
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            line-height: 1.25;
         }
         .kpi-value {
             color: #000000;
