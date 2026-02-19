@@ -182,15 +182,20 @@ def _render_fachbereich_overview(rows: list[StudyProgramRow], import_year: int |
         ]
     )
 
-    _section_title("Module")
-    cols = st.columns(2)
-    with cols[0]:
+    _section_title("Profile")
+    col_left, col_right = st.columns(2)
+    with col_left:
+        st.markdown('<div class="panel-title">Vorstudium der Studienanfänger(innen)</div>', unsafe_allow_html=True)
+        _render_profile_table(_aggregate_profiles(rows, "vorstudium_profil"))
+        st.markdown('<div class="panel-title">Herkunft der Lehrenden</div>', unsafe_allow_html=True)
+        _render_profile_table(_aggregate_profiles(rows, "dozenten_herkunft_profil"))
+    with col_right:
         st.markdown('<div class="panel-title">Modulbelegung nach Studiengängen</div>', unsafe_allow_html=True)
         _render_profile_table(_aggregate_profiles(rows, "module_belegung_nach_sg"))
-    with cols[1]:
         st.markdown('<div class="panel-title">Herkunft der Modulteilnehmer(innen)</div>', unsafe_allow_html=True)
         _render_profile_table(_aggregate_profiles(rows, "modulteilnehmer_herkunft"))
 
+    _section_title("Module")
     _render_kpi_row(
         [
             ("Durchschnittliche Modulauslastung", _format_number(_average_metric(rows, "modulauslastung"))),
